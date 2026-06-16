@@ -27,7 +27,7 @@ Ferramenta que **lê uma aplicação-alvo, descobre e captura todas as suas tela
 ```bash
 npm install
 npx playwright install chromium   # necessário a partir da Fase 1 (captura)
-npm run dev                        # http://localhost:3000
+npm run dev                        # http://localhost:3900
 ```
 
 Dados ficam em `./data` (SQLite + screenshots + exports), que é **gitignored**.

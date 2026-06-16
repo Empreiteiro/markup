@@ -1,10 +1,10 @@
 // E2E verification of the new delete features against the running markup dev
-// server (:3000). Doubles as cleanup: removes the two stale screens (/llm,
+// server (:3900). Doubles as cleanup: removes the two stale screens (/llm,
 // /insight). Asserts the UI renders the controls and that clicking them really
 // deletes through the API + DB and updates the list.
 import { chromium } from "playwright";
 
-const BASE = "http://localhost:3000";
+const BASE = "http://localhost:3900";
 const PID = "nEcgEYQ34PyR";
 const LLM = "0YyJ23nIhlVf"; // stale /llm screen (1 annotation)
 const INSIGHT = "GQeMKk1IiQKa"; // stale /insight screen
