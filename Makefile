@@ -4,7 +4,10 @@
 SHELL := /bin/bash
 .DEFAULT_GOAL := help
 
-.PHONY: help init install browsers dev build start lint typecheck check mcp clean reset-data
+# Web app port — keep in sync with the `-p` flag in package.json's dev/start scripts.
+PORT := 3900
+
+.PHONY: help init install browsers kill-port dev build start lint typecheck check mcp clean reset-data
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | \
@@ -13,7 +16,7 @@ help: ## Show this help
 init: install browsers ## First-time setup: install deps + Playwright Chromium
 	@echo ""
 	@echo "✓ Ready. Next steps:"
-	@echo "    make dev   # start the web app at http://localhost:3000"
+	@echo "    make dev   # start the web app at http://localhost:$(PORT)"
 	@echo "    make mcp   # run the MCP server (Claude Code / Cursor)"
 
 install: ## Install npm dependencies
@@ -22,13 +25,18 @@ install: ## Install npm dependencies
 browsers: ## Install the Playwright Chromium browser (needed for capture)
 	npx playwright install chromium
 
-dev: ## Start the Next.js dev server (http://localhost:3000)
+kill-port: ## Free the app port (3900): kill any process LISTENing on it
+	@pids=$$(lsof -nP -iTCP:$(PORT) -sTCP:LISTEN -t 2>/dev/null); \
+	if [ -n "$$pids" ]; then echo "Port $(PORT) in use (PID $$pids) — killing"; kill -9 $$pids 2>/dev/null || true; \
+	else echo "Port $(PORT) is free"; fi
+
+dev: kill-port ## Start the Next.js dev server (http://localhost:3900)
 	npm run dev
 
 build: ## Production build
 	npm run build
 
-start: build ## Build, then run the production server
+start: build kill-port ## Build, then run the production server (frees the port first)
 	npm run start
 
 lint: ## Run ESLint
