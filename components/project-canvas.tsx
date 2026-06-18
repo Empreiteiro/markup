@@ -15,12 +15,13 @@ import {
   type Edge,
   type Node,
   type NodeProps,
+  type ReactFlowInstance,
 } from "@xyflow/react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 import { jsonFetch } from "@/src/lib/utils";
 import { TrashIcon } from "@/components/ui";
-import { autoLayout } from "@/src/sequence/layout";
+import { autoLayout, gridLayout, sectionLayout } from "@/src/sequence/layout";
 import type { ScreenSummary } from "@/src/db/screens";
 import type { NavEdge } from "@/src/types";
 
@@ -157,10 +158,18 @@ export function ProjectCanvas({
       }),
   });
 
-  const organize = () => {
-    const pos = autoLayout(screens, edges);
+  const rfRef = useRef<ReactFlowInstance<ScreenNode, Edge> | null>(null);
+
+  type LayoutMode = "flow" | "grid" | "section";
+  const applyLayout = (mode: LayoutMode) => {
+    const pos =
+      mode === "flow"
+        ? autoLayout(screens, edges)
+        : mode === "grid"
+          ? gridLayout(screens)
+          : sectionLayout(screens);
     setNodes((nds) =>
-      nds.map((n) => ({ ...n, position: pos[n.id] ?? n.position })),
+      nds.map((n) => (pos[n.id] ? { ...n, position: pos[n.id] } : n)),
     );
     bulkSave.mutate(
       Object.entries(pos).map(([id, p]) => ({
@@ -168,6 +177,10 @@ export function ProjectCanvas({
         x: Math.round(p.x),
         y: Math.round(p.y),
       })),
+    );
+    // Re-fit the viewport after the nodes move.
+    requestAnimationFrame(() =>
+      rfRef.current?.fitView({ padding: 0.12, duration: 400 }),
     );
   };
 
@@ -187,6 +200,9 @@ export function ProjectCanvas({
           })
         }
         onNodeClick={(_, node) => onOpen?.(node.id)}
+        onInit={(inst) => {
+          rfRef.current = inst;
+        }}
         fitView
         minZoom={0.1}
         proOptions={{ hideAttribution: true }}
@@ -195,12 +211,26 @@ export function ProjectCanvas({
         <MiniMap pannable zoomable />
         <Controls />
         <Panel position="top-right">
-          <button
-            onClick={organize}
-            className="rounded-md border border-border bg-card px-3 py-1.5 text-sm font-medium shadow-sm hover:bg-zinc-50"
-          >
-            Arrange flow
-          </button>
+          <div className="flex items-center gap-0.5 rounded-md border border-border bg-card p-1 shadow-sm">
+            <span className="px-1.5 text-xs font-medium text-muted">Arrange</span>
+            {(
+              [
+                ["flow", "Flow", "Lay out by navigation flow"],
+                ["grid", "Grid", "Tidy uniform grid"],
+                ["section", "Sections", "Group by route section"],
+              ] as const
+            ).map(([mode, label, title]) => (
+              <button
+                key={mode}
+                onClick={() => applyLayout(mode)}
+                disabled={bulkSave.isPending}
+                title={title}
+                className="rounded px-2.5 py-1 text-sm font-medium text-muted transition-colors hover:bg-zinc-100 hover:text-foreground disabled:opacity-50"
+              >
+                {label}
+              </button>
+            ))}
+          </div>
         </Panel>
       </ReactFlow>
     </div>

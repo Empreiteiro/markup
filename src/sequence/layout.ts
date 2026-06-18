@@ -25,6 +25,39 @@ export function gridLayout(
   return out;
 }
 
+/** Group screens into rows by their top-level route segment (e.g. all
+ *  `/documents/*` on one row, `/templates/*` on the next). Each section is its
+ *  own row; screens within a section flow left→right by `order`. Tidies a large
+ *  set of screens by feature area regardless of the navigation graph. */
+export function sectionLayout(
+  screens: Pick<Screen, "id" | "route" | "order">[],
+  gap = 48,
+): Record<string, Pos> {
+  const sectionOf = (route: string | null): string =>
+    (route ?? "").split("/").filter(Boolean)[0] ?? "/"; // "/" = home / unrouted
+
+  const buckets = new Map<string, Pick<Screen, "id" | "route" | "order">[]>();
+  for (const s of [...screens].sort((a, b) => a.order - b.order)) {
+    const key = sectionOf(s.route);
+    const arr = buckets.get(key);
+    if (arr) arr.push(s);
+    else buckets.set(key, [s]);
+  }
+
+  // Home ("/") first, then sections alphabetically.
+  const sections = [...buckets.keys()].sort((a, b) =>
+    a === "/" ? -1 : b === "/" ? 1 : a.localeCompare(b),
+  );
+
+  const out: Record<string, Pos> = {};
+  sections.forEach((key, row) => {
+    buckets.get(key)!.forEach((s, col) => {
+      out[s.id] = { x: col * (NODE_W + gap), y: row * (NODE_H + gap * 2) };
+    });
+  });
+  return out;
+}
+
 /** Flow layout (left→right) driven by the navigation graph. */
 export function dagreLayout(
   screens: Pick<Screen, "id">[],
