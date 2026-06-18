@@ -3,21 +3,17 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { ExportDialog } from "@/components/export-dialog";
 import { ProjectCanvas } from "@/components/project-canvas";
-import { Button, Spinner, TrashIcon, Textarea } from "@/components/ui";
+import { Button, Spinner, TrashIcon } from "@/components/ui";
 import { cn, jsonFetch } from "@/src/lib/utils";
-import type { CaptureJob } from "@/src/capture/jobs";
-import type { DiscoverySummary } from "@/src/discovery";
 import type { ScreenSummary } from "@/src/db/screens";
 import type { NavEdge, Project } from "@/src/types";
 
-type CaptureStatus = CaptureJob | { projectId: string; status: "idle" };
 type View = "canvas" | "grid";
 
 export function ProjectView({ id }: { id: string }) {
-  const qc = useQueryClient();
   const router = useRouter();
   const [view, setView] = useState<View>("canvas");
   const [exportOpen, setExportOpen] = useState(false);
@@ -36,28 +32,6 @@ export function ProjectView({ id }: { id: string }) {
     queryKey: ["edges", id],
     queryFn: () => jsonFetch<NavEdge[]>(`/api/projects/${id}/edges`),
   });
-
-  const status = useQuery({
-    queryKey: ["capture-status", id],
-    queryFn: () => jsonFetch<CaptureStatus>(`/api/projects/${id}/capture`),
-    refetchInterval: (q) =>
-      (q.state.data as CaptureStatus | undefined)?.status === "running"
-        ? 800
-        : false,
-  });
-
-  const job = status.data;
-  const running = job?.status === "running";
-  const finishedAt = job && "finishedAt" in job ? job.finishedAt : null;
-
-  // Refresh the screens grid whenever a capture finishes.
-  useEffect(() => {
-    if (job?.status === "done" || job?.status === "error") {
-      qc.invalidateQueries({ queryKey: ["screens", id] });
-      qc.invalidateQueries({ queryKey: ["edges", id] });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [job?.status, finishedAt]);
 
   if (project.isLoading) {
     return (
@@ -91,13 +65,6 @@ export function ProjectView({ id }: { id: string }) {
         <code className="text-sm text-muted">{p.baseUrl}</code>
       </div>
 
-      <CapturePanel
-        id={id}
-        repoPath={p.repoPath}
-        job={job}
-        running={running}
-      />
-
       <div className="mt-8">
         <div className="mb-3 flex items-center justify-between gap-3">
           <h2 className="text-lg font-medium">
@@ -120,7 +87,9 @@ export function ProjectView({ id }: { id: string }) {
 
         {!screenList.length ? (
           <div className="rounded-lg border border-dashed border-border p-8 text-center text-sm text-muted">
-            No screens captured yet. Enter routes above and click Capture.
+            No screens yet. Use the markup MCP tools (
+            <code>markup_discover</code> / <code>markup_capture</code>) to add
+            screens, then reload.
           </div>
         ) : view === "canvas" ? (
           <ProjectCanvas
@@ -167,160 +136,6 @@ function ViewToggle({
           {v === "canvas" ? "Canvas" : "Grid"}
         </button>
       ))}
-    </div>
-  );
-}
-
-function CapturePanel({
-  id,
-  repoPath,
-  job,
-  running,
-}: {
-  id: string;
-  repoPath: string | null;
-  job: CaptureStatus | undefined;
-  running: boolean;
-}) {
-  const qc = useQueryClient();
-  const [routes, setRoutes] = useState("/");
-  const [discovery, setDiscovery] = useState<DiscoverySummary | null>(null);
-
-  const discover = useMutation({
-    mutationFn: () =>
-      jsonFetch<DiscoverySummary>(`/api/projects/${id}/discover`, {
-        method: "POST",
-      }),
-    onSuccess: (data) => {
-      setDiscovery(data);
-      const staticRoutes = data.routes
-        .filter((r) => !r.dynamic)
-        .map((r) => r.route);
-      if (staticRoutes.length) setRoutes(staticRoutes.join("\n"));
-      qc.invalidateQueries({ queryKey: ["screens", id] });
-      qc.invalidateQueries({ queryKey: ["edges", id] });
-    },
-  });
-
-  const capture = useMutation({
-    mutationFn: () =>
-      jsonFetch<CaptureJob>(`/api/projects/${id}/capture`, {
-        method: "POST",
-        body: JSON.stringify({ routes }),
-      }),
-  });
-
-  const pct =
-    job && "total" in job && job.total > 0
-      ? Math.round((job.done / job.total) * 100)
-      : 0;
-
-  return (
-    <div className="mt-6 rounded-lg border border-border bg-card p-5">
-      <h2 className="font-medium">Capture screens</h2>
-      <p className="mt-1 text-sm text-muted">
-        One route per line (the app must be running at the base URL). E.g.:{" "}
-        <code>/</code>, <code>/login</code>, <code>/settings</code>.
-      </p>
-
-      {repoPath ? (
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => discover.mutate()}
-            disabled={discover.isPending}
-          >
-            {discover.isPending ? (
-              <>
-                <Spinner /> Discovering…
-              </>
-            ) : (
-              "Discover routes from repo"
-            )}
-          </Button>
-          {discovery ? (
-            <span className="text-xs text-muted">
-              {discovery.framework} · {discovery.screenCount} routes (
-              {discovery.dynamicCount} dynamic) · {discovery.edgeCount} links
-              {discovery.modals.length
-                ? ` · ${discovery.modals.length} modals`
-                : ""}
-            </span>
-          ) : null}
-          {discover.isError ? (
-            <span className="text-xs text-red-600">
-              {(discover.error as Error).message}
-            </span>
-          ) : null}
-        </div>
-      ) : (
-        <p className="mt-2 text-xs text-muted">
-          Set the repo path on the project to discover routes automatically.
-        </p>
-      )}
-      <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
-        <label className="flex flex-col gap-1.5">
-          <span className="text-sm font-medium">Routes</span>
-          <Textarea
-            rows={3}
-            value={routes}
-            onChange={(e) => setRoutes(e.target.value)}
-            className="font-mono text-xs"
-            placeholder={"/\n/login\n/settings"}
-          />
-        </label>
-        <Button
-          onClick={() => capture.mutate()}
-          disabled={running || capture.isPending}
-          className="sm:w-40"
-        >
-          {running || capture.isPending ? (
-            <>
-              <Spinner /> Capturing…
-            </>
-          ) : (
-            "Capture"
-          )}
-        </Button>
-      </div>
-
-      {running && job && "total" in job ? (
-        <div className="mt-4">
-          <div className="h-2 w-full overflow-hidden rounded-full bg-zinc-100">
-            <div
-              className="h-full bg-accent transition-all"
-              style={{ width: `${pct}%` }}
-            />
-          </div>
-          <p className="mt-1.5 text-xs text-muted">
-            {job.done}/{job.total} · {job.current ?? "…"}
-          </p>
-        </div>
-      ) : null}
-
-      {job?.status === "done" && "capturedRoutes" in job ? (
-        <p className="mt-3 text-sm text-muted">
-          Last capture: {job.capturedRoutes.length} screen(s)
-          {job.errors.length ? ` · ${job.errors.length} error(s)` : ""}.
-        </p>
-      ) : null}
-
-      {job && "errors" in job && job.errors.length ? (
-        <ul className="mt-2 space-y-1 text-xs text-red-600">
-          {job.errors.map((e) => (
-            <li key={e.route}>
-              <code>{e.route}</code>: {e.error}
-            </li>
-          ))}
-        </ul>
-      ) : null}
-
-      {capture.isError ? (
-        <p className="mt-2 text-sm text-red-600">
-          {(capture.error as Error).message}
-        </p>
-      ) : null}
     </div>
   );
 }
