@@ -15,7 +15,7 @@ type View = "canvas" | "grid";
 
 export function ProjectView({ id }: { id: string }) {
   const router = useRouter();
-  const [view, setView] = useState<View>("canvas");
+  const [view, setView] = useState<View>("grid");
   const [exportOpen, setExportOpen] = useState(false);
 
   const project = useQuery({
