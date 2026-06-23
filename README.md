@@ -60,7 +60,7 @@ Data in `./data` (gitignored).
 2. Create a project (MCP `markup_create_project`) with that **base URL** and, optionally, the **repo path** for screen→code mapping.
 3. **Discovery and capture run through the MCP** (`markup_discover` / `markup_capture`) → see the screens in the **grid/canvas** → **annotate** → **export** `review.md`.
 
-## MCP integration (Claude Code / Cursor / IBM Bob / other AIs)
+## MCP integration (Claude Code / Claude Desktop / Cursor / VS Code / IBM Bob)
 
 The platform is exposed as an **MCP server (stdio)** in [src/mcp/server.ts](src/mcp/server.ts), reusing the same SQLite store (`./data`) — the web server does **not** need to be running. So Claude Code, Cursor, IBM Bob or any MCP client can **run discovery, view screens/elements and create/edit annotations** programmatically.
 
@@ -89,7 +89,7 @@ All clients share the same JSON shape — an `mcpServers` object. The simplest e
 > }
 > ```
 
-> **GUI apps and `PATH`:** desktop clients (Cursor, Bob) don't always inherit your shell `PATH`, so the bare `markup` command may not resolve. If the server fails to start, replace `"command": "markup"` with the absolute path from `which markup` (e.g. `/usr/local/bin/markup` or an nvm path like `~/.nvm/versions/node/<v>/bin/markup`).
+> **GUI apps and `PATH`:** desktop clients (Claude Desktop, Cursor, VS Code, Bob) don't always inherit your shell `PATH`, so the bare `markup` command may not resolve. If the server fails to start, replace `"command": "markup"` with the absolute path from `which markup` (e.g. `/usr/local/bin/markup` or an nvm path like `~/.nvm/versions/node/<v>/bin/markup`).
 
 ### Claude Code
 
@@ -98,6 +98,21 @@ claude mcp add markup -- markup mcp
 ```
 
 Or edit `.mcp.json` (project) / `~/.claude.json` (global) with the `mcpServers` block above.
+
+### Claude Desktop
+
+Open **Settings → Developer → Edit Config** (or edit the file directly), add the server, and restart Claude Desktop:
+
+- macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
+- Windows: `%APPDATA%\Claude\claude_desktop_config.json`
+
+```json
+{
+  "mcpServers": {
+    "markup": { "command": "markup", "args": ["mcp"] }
+  }
+}
+```
 
 ### Cursor
 
@@ -112,6 +127,24 @@ Add the server to `~/.cursor/mcp.json` (global) or `.cursor/mcp.json` (project):
 ```
 
 Or via the UI: **Settings → Tools & Integrations → New MCP Server**, then make sure the `markup` toggle is enabled. Cursor loads `mcpServers` on startup; reload the window after editing.
+
+### VS Code
+
+VS Code uses the `servers` key with an explicit `type` (**not** the `mcpServers` shape used by the other clients). Add to `.vscode/mcp.json` (workspace, shareable) or run **MCP: Open User Configuration** from the Command Palette (user profile):
+
+```json
+{
+  "servers": {
+    "markup": {
+      "type": "stdio",
+      "command": "markup",
+      "args": ["mcp"]
+    }
+  }
+}
+```
+
+Start it from the `mcp.json` editor (a **Start** code lens appears above the server) or via the **MCP: List Servers** command. Requires agent mode in Copilot Chat.
 
 ### IBM Bob (VS Code fork)
 
