@@ -1,74 +1,72 @@
-# Markup — revisão visual de telas
+# Markup — visual screen review
 
-Ferramenta que **lê uma aplicação-alvo, descobre e captura todas as suas telas/modais, mostra tudo num canvas em ordem de fluxo (UX), permite anotações visuais ancoradas a elementos reais e ao código de origem, e exporta um documento de revisão** consumível por IA (Claude Code/Cursor) ou por um desenvolvedor.
+A tool that **reads a target application, discovers and captures all of its screens/modals, lays them out on a flow-ordered (UX) canvas, lets you add visual annotations anchored to real elements and to the source code, and exports a review document** consumable by an AI (Claude Code, Cursor, IBM Bob) or a developer.
 
-## Como funciona (visão geral)
+## How it works (overview)
 
-1. **Descobre** (análise estática do repo): rotas, telas, modais e o grafo de navegação — mapeando cada tela ao arquivo/componente de origem. Foco inicial em **React / Next.js**.
-2. **Captura** (Playwright): navega a URL da app rodando, tira screenshots reais e extrai o mapa de elementos de cada tela (seletor, papel/ARIA, nome acessível, bounding box).
-3. **Canvas** (React Flow): telas como nós conectados pelo fluxo de navegação, em layout sequencial.
-4. **Anota**: pins / caixas / setas sobre a screenshot, auto-atreladas ao elemento real (e ao `arquivo:linha` quando disponível).
-5. **Exporta**: `review.md` (humano + IA, com checklist de tarefas) e `review.json` (canônico, tipado).
+1. **Discover** (static repo analysis): routes, screens, modals and the navigation graph — mapping each screen to its source file/component. Initial focus on **React / Next.js**.
+2. **Capture** (Playwright): navigates to the running app's URL, takes real screenshots and extracts each screen's element map (selector, role/ARIA, accessible name, bounding box).
+3. **Canvas** (React Flow): screens as nodes connected by the navigation flow, in a sequential layout.
+4. **Annotate**: pins / boxes / arrows over the screenshot, auto-anchored to the real element (and to `file:line` when available).
+5. **Export**: `review.md` (human + AI, with a task checklist) and `review.json` (canonical, typed).
 
-> No v1, a captura funciona apontando para uma **URL já rodando** (robusto). Subir o dev server do repo automaticamente vem na fase de polish.
+> In v1, capture works by pointing at an **already-running URL** (robust). Auto-starting the repo's dev server comes in the polish phase.
 
 ## Stack
 
-- **Next.js 16 (App Router) + TypeScript** — app full-stack único; API routes hospedam o pipeline.
-- **Tailwind CSS v4** — estilos.
-- **@xyflow/react + dagre** — canvas e auto-layout do fluxo.
-- **Playwright (chromium)** — captura de telas + extração de elementos.
-- **ts-morph** — análise estática de rotas/modais com `arquivo:linha`.
-- **better-sqlite3** — armazenamento local; screenshots em disco (`./data`).
+- **Next.js 16 (App Router) + TypeScript** — single full-stack app; API routes host the pipeline.
+- **Tailwind CSS v4** — styling.
+- **@xyflow/react + dagre** — canvas and flow auto-layout.
+- **Playwright (chromium)** — screen capture + element extraction.
+- **ts-morph** — static route/modal analysis with `file:line`.
+- **better-sqlite3** — local storage; screenshots on disk (`./data`).
 - **TanStack Query + Zustand + Zod**.
 
-## Instalação
+## Installation
 
-### Sem clonar (via npm + GitHub) — mais rápido
+### Without cloning (via npm + GitHub) — fastest
 
-Instala o CLI `markup` direto do repositório, sem `git clone`:
+Installs the `markup` CLI straight from the repo, no `git clone`:
 
 ```bash
 npm i -g github:Empreiteiro/markup
-markup setup      # uma vez: baixa o Chromium do Playwright (para captura)
-markup ui         # UI em http://localhost:3900
+markup setup      # one-time: downloads the Playwright Chromium browser (for capture)
+markup ui         # UI at http://localhost:3900
 ```
 
-Registrar o MCP no Claude Code:
+Register the MCP in Claude Code:
 
 ```bash
 claude mcp add markup -- markup mcp
 ```
 
-> Dados em `~/.markup/data` (SQLite + screenshots), compartilhados por UI e MCP. Override com `MARKUP_DATA_DIR`.
+> Data lives in `~/.markup/data` (SQLite + screenshots), shared by the UI and the MCP. Override with `MARKUP_DATA_DIR`.
 
-### Clonando (desenvolvimento)
+### Cloning (development)
 
 ```bash
 git clone https://github.com/Empreiteiro/markup.git
 cd markup
-make init          # npm install + Chromium do Playwright
-make dev           # UI em http://localhost:3900
-make mcp           # servidor MCP (stdio)
+make init          # npm install + Playwright Chromium
+make dev           # UI at http://localhost:3900
+make mcp           # MCP server (stdio)
 ```
 
-Dados em `./data` (gitignored).
+Data in `./data` (gitignored).
 
-### Fluxo de uso
+### Usage flow
 
-1. Suba a aplicação-alvo que você quer revisar (ex.: `http://localhost:3000`).
-2. Crie um projeto (MCP `markup_create_project`) com essa **URL base** e, opcionalmente, o **caminho do repo** para o mapeamento tela→código.
-3. **Discovery e captura são via MCP** (`markup_discover` / `markup_capture`) → veja as telas no **grid/canvas** → **anote** → **exporte** o `review.md`.
+1. Start the target app you want to review (e.g. `http://localhost:3000`).
+2. Create a project (MCP `markup_create_project`) with that **base URL** and, optionally, the **repo path** for screen→code mapping.
+3. **Discovery and capture run through the MCP** (`markup_discover` / `markup_capture`) → see the screens in the **grid/canvas** → **annotate** → **export** `review.md`.
 
-## Integração MCP (Claude Code / Cursor / outras IAs)
+## MCP integration (Claude Code / Cursor / IBM Bob / other AIs)
 
-A plataforma é exposta como um **servidor MCP (stdio)** em [src/mcp/server.ts](src/mcp/server.ts), reaproveitando a mesma base SQLite (`./data`) — **não precisa** do servidor web rodando. Assim, Claude Code, Cursor ou outra IA podem **rodar o discovery, ver telas/elementos e criar/editar anotações** programaticamente.
+The platform is exposed as an **MCP server (stdio)** in [src/mcp/server.ts](src/mcp/server.ts), reusing the same SQLite store (`./data`) — the web server does **not** need to be running. So Claude Code, Cursor, IBM Bob or any MCP client can **run discovery, view screens/elements and create/edit annotations** programmatically.
 
-Rodar manualmente: `markup mcp` (instalado via npm) ou `npm run mcp` (no repo clonado).
+Run it manually: `markup mcp` (installed via npm) or `npm run mcp` (in a cloned repo).
 
-### Configuração
-
-**Instalado via npm** (`npm i -g github:Empreiteiro/markup`) — o jeito simples (Claude Code: `claude mcp add markup -- markup mcp`):
+All clients share the same JSON shape — an `mcpServers` object. The simplest entry (after `npm i -g github:Empreiteiro/markup`):
 
 ```json
 {
@@ -78,58 +76,103 @@ Rodar manualmente: `markup mcp` (instalado via npm) ou `npm run mcp` (no repo cl
 }
 ```
 
-**Repo clonado** — aponte para o `tsx` local:
+> **Cloned repo instead of the global CLI?** Point at the local `tsx`:
+> ```json
+> {
+>   "mcpServers": {
+>     "markup": {
+>       "command": "<repo>/node_modules/.bin/tsx",
+>       "args": ["<repo>/src/mcp/server.ts"],
+>       "env": { "MARKUP_DATA_DIR": "<repo>/data" }
+>     }
+>   }
+> }
+> ```
+
+> **GUI apps and `PATH`:** desktop clients (Cursor, Bob) don't always inherit your shell `PATH`, so the bare `markup` command may not resolve. If the server fails to start, replace `"command": "markup"` with the absolute path from `which markup` (e.g. `/usr/local/bin/markup` or an nvm path like `~/.nvm/versions/node/<v>/bin/markup`).
+
+### Claude Code
+
+```bash
+claude mcp add markup -- markup mcp
+```
+
+Or edit `.mcp.json` (project) / `~/.claude.json` (global) with the `mcpServers` block above.
+
+### Cursor
+
+Add the server to `~/.cursor/mcp.json` (global) or `.cursor/mcp.json` (project):
+
+```json
+{
+  "mcpServers": {
+    "markup": { "command": "markup", "args": ["mcp"] }
+  }
+}
+```
+
+Or via the UI: **Settings → Tools & Integrations → New MCP Server**, then make sure the `markup` toggle is enabled. Cursor loads `mcpServers` on startup; reload the window after editing.
+
+### IBM Bob (VS Code fork)
+
+Bob uses the same `mcpServers` format. Add it through the UI — **settings icon in the Bob panel → `MCP` tab → `Edit Global MCP`** (or `Edit Project MCP`) — or edit the file directly:
+
+- Global: `~/.bob/mcp_settings.json`
+- Project: `.bob/mcp.json` (shareable via version control; takes precedence over global)
 
 ```json
 {
   "mcpServers": {
     "markup": {
-      "command": "<repo>/node_modules/.bin/tsx",
-      "args": ["<repo>/src/mcp/server.ts"],
-      "env": { "MARKUP_DATA_DIR": "<repo>/data" }
+      "command": "markup",
+      "args": ["mcp"],
+      "alwaysAllow": ["markup_list_projects", "markup_list_screens", "markup_get_screenshot"],
+      "disabled": false
     }
   }
 }
 ```
 
-`MARKUP_DATA_DIR` aponta para a mesma pasta `data/` do app web — a IA e a UI compartilham os dados em tempo real (WAL).
+Bob also supports `cwd` and `env` per server (e.g. `"env": { "MARKUP_DATA_DIR": "/abs/path/data" }`).
 
-### Ferramentas (20)
+> `MARKUP_DATA_DIR` points to the same `data/` folder the web UI uses — the AI and the UI share data in real time (SQLite WAL).
 
-- **Projetos:** `markup_list_projects`, `markup_get_project`, `markup_create_project`, `markup_update_project`, `markup_delete_project`
-- **Discovery & captura:** `markup_discover` (lê o repo → rotas + `arquivo:linha` + grafo de navegação + modais), `markup_capture` (Playwright; a app-alvo precisa estar rodando na baseUrl)
-- **Telas:** `markup_list_screens`, `markup_get_screen` (tela + elementos com `selector`/ARIA/bbox), `markup_get_screenshot` (PNG, para a IA **ver** a tela), `markup_delete_screen`
-- **Anotações:** `markup_list_annotations`, `markup_create_annotation` (atrela por `selector` ou `elementId`, posição calculada do bbox), `markup_update_annotation`, `markup_delete_annotation`
+### Tools (20)
+
+- **Projects:** `markup_list_projects`, `markup_get_project`, `markup_create_project`, `markup_update_project`, `markup_delete_project`
+- **Discovery & capture:** `markup_discover` (reads the repo → routes + `file:line` + navigation graph + modals), `markup_capture` (Playwright; the target app must be running at the baseUrl)
+- **Screens:** `markup_list_screens`, `markup_get_screen` (screen + elements with `selector`/ARIA/bbox), `markup_get_screenshot` (PNG, so the AI can **see** the screen), `markup_delete_screen`
+- **Annotations:** `markup_list_annotations`, `markup_create_annotation` (anchors by `selector` or `elementId`, position computed from the bbox), `markup_update_annotation`, `markup_delete_annotation`
 - **Export:** `markup_export_review` (`review.md` / `review.json`)
-- **Runtime (repo):** `markup_clone_repo` (clona repo remoto), `markup_start_app` (sobe o dev server, detecta a URL e a define como baseUrl), `markup_stop_app`, `markup_app_status`
+- **Runtime (repo):** `markup_clone_repo` (clones a remote repo), `markup_start_app` (starts the dev server, detects the URL and sets it as baseUrl), `markup_stop_app`, `markup_app_status`
 
-### Fluxo típico para a IA
+### Typical AI flow
 
-`markup_create_project` → `markup_clone_repo` (se for repo remoto) → `markup_start_app` (sobe a app) → `markup_discover` → `markup_capture` → `markup_get_screen` / `markup_get_screenshot` → `markup_create_annotation` (por `selector`) → `markup_export_review`.
+`markup_create_project` → `markup_clone_repo` (if remote) → `markup_start_app` (boots the app) → `markup_discover` → `markup_capture` → `markup_get_screen` / `markup_get_screenshot` → `markup_create_annotation` (by `selector`) → `markup_export_review`.
 
-## Roadmap (fases)
+## Roadmap (phases)
 
-- [x] **Fase 0** — Scaffold, banco (SQLite), tipos, CRUD de projetos.
-- [x] **Fase 1** — Captura via Playwright (screenshots + elementos).
-- [x] **Fase 2** — Canvas + sequência (React Flow + dagre).
-- [x] **Fase 3** — Anotações (pin/box/arrow + atrelar elemento).
-- [x] **Fase 4** — Discovery estático (rotas/modais React/Next).
-- [x] **Fase 5** — Export (`review.md` + `review.json`).
-- [ ] **Fase 6** — Polish (auto-subir repo, auth, rotas dinâmicas, source-map por elemento).
-- [x] **MCP** — servidor stdio expondo a plataforma (discovery + anotações) para Claude Code/Cursor.
+- [x] **Phase 0** — Scaffold, database (SQLite), types, project CRUD.
+- [x] **Phase 1** — Capture via Playwright (screenshots + elements).
+- [x] **Phase 2** — Canvas + sequence (React Flow + dagre).
+- [x] **Phase 3** — Annotations (pin/box/arrow + element anchoring).
+- [x] **Phase 4** — Static discovery (React/Next routes/modals).
+- [x] **Phase 5** — Export (`review.md` + `review.json`).
+- [ ] **Phase 6** — Polish (auto-start repo, auth, dynamic routes, per-element source map).
+- [x] **MCP** — stdio server exposing the platform (discovery + annotations) to Claude Code / Cursor / Bob.
 
-## Estrutura
+## Structure
 
 ```
-app/            # rotas Next (UI + API)
-components/      # componentes de UI
+app/            # Next routes (UI + API)
+components/      # UI components
 src/
-  db/           # schema + acesso SQLite (better-sqlite3)
-  types/        # tipos de domínio + schemas Zod
-  capture/      # (Fase 1) crawler Playwright + extração de elementos
-  discovery/    # (Fase 4) análise estática de rotas/modais
-  sequence/     # (Fase 2) layout do fluxo
-  export/       # (Fase 5) geração de review.md / review.json
-  lib/          # utilidades
+  db/           # schema + SQLite access (better-sqlite3)
+  types/        # domain types + Zod schemas
+  capture/      # (Phase 1) Playwright crawler + element extraction
+  discovery/    # (Phase 4) static route/modal analysis
+  sequence/     # (Phase 2) flow layout
+  export/       # (Phase 5) review.md / review.json generation
+  lib/          # utilities
 data/           # local: sqlite + screenshots + exports (gitignored)
 ```
