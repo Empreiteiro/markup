@@ -146,7 +146,7 @@ VS Code uses the `servers` key with an explicit `type` (**not** the `mcpServers`
 
 Start it from the `mcp.json` editor (a **Start** code lens appears above the server) or via the **MCP: List Servers** command. Requires agent mode in Copilot Chat.
 
-### IBM Bob (VS Code fork)
+### IBM Bob
 
 Bob uses the same `mcpServers` format. Add it through the UI — **settings icon in the Bob panel → `MCP` tab → `Edit Global MCP`** (or `Edit Project MCP`) — or edit the file directly:
 
@@ -182,17 +182,6 @@ Bob also supports `cwd` and `env` per server (e.g. `"env": { "MARKUP_DATA_DIR": 
 ### Typical AI flow
 
 `markup_create_project` → `markup_clone_repo` (if remote) → `markup_start_app` (boots the app) → `markup_discover` → `markup_capture` → `markup_get_screen` / `markup_get_screenshot` → `markup_create_annotation` (by `selector`) → `markup_export_review`.
-
-## Roadmap (phases)
-
-- [x] **Phase 0** — Scaffold, database (SQLite), types, project CRUD.
-- [x] **Phase 1** — Capture via Playwright (screenshots + elements).
-- [x] **Phase 2** — Canvas + sequence (React Flow + dagre).
-- [x] **Phase 3** — Annotations (pin/box/arrow + element anchoring).
-- [x] **Phase 4** — Static discovery (React/Next routes/modals).
-- [x] **Phase 5** — Export (`review.md` + `review.json`).
-- [ ] **Phase 6** — Polish (auto-start repo, auth, dynamic routes, per-element source map).
-- [x] **MCP** — stdio server exposing the platform (discovery + annotations) to Claude Code / Cursor / Bob.
 
 ## Structure
 
