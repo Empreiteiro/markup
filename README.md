@@ -22,39 +22,71 @@ Ferramenta que **lê uma aplicação-alvo, descobre e captura todas as suas tela
 - **better-sqlite3** — armazenamento local; screenshots em disco (`./data`).
 - **TanStack Query + Zustand + Zod**.
 
-## Rodando localmente
+## Instalação
+
+### Sem clonar (via npm + GitHub) — mais rápido
+
+Instala o CLI `markup` direto do repositório, sem `git clone`:
 
 ```bash
-npm install
-npx playwright install chromium   # necessário a partir da Fase 1 (captura)
-npm run dev                        # http://localhost:3900
+npm i -g github:Empreiteiro/markup
+markup setup      # uma vez: baixa o Chromium do Playwright (para captura)
+markup ui         # UI em http://localhost:3900
 ```
 
-Dados ficam em `./data` (SQLite + screenshots + exports), que é **gitignored**.
+Registrar o MCP no Claude Code:
+
+```bash
+claude mcp add markup -- markup mcp
+```
+
+> Dados em `~/.markup/data` (SQLite + screenshots), compartilhados por UI e MCP. Override com `MARKUP_DATA_DIR`.
+
+### Clonando (desenvolvimento)
+
+```bash
+git clone https://github.com/Empreiteiro/markup.git
+cd markup
+make init          # npm install + Chromium do Playwright
+make dev           # UI em http://localhost:3900
+make mcp           # servidor MCP (stdio)
+```
+
+Dados em `./data` (gitignored).
 
 ### Fluxo de uso
 
-1. Suba a aplicação-alvo que você quer revisar (ex.: `http://localhost:3001`).
-2. No Markup, crie um projeto com essa **URL base** (e, opcionalmente, o **caminho do repo** para o mapeamento tela→código).
-3. Rode **Capturar** → veja as telas no **canvas** → **anote** → **exporte** o `review.md`.
+1. Suba a aplicação-alvo que você quer revisar (ex.: `http://localhost:3000`).
+2. Crie um projeto (MCP `markup_create_project`) com essa **URL base** e, opcionalmente, o **caminho do repo** para o mapeamento tela→código.
+3. **Discovery e captura são via MCP** (`markup_discover` / `markup_capture`) → veja as telas no **grid/canvas** → **anote** → **exporte** o `review.md`.
 
 ## Integração MCP (Claude Code / Cursor / outras IAs)
 
 A plataforma é exposta como um **servidor MCP (stdio)** em [src/mcp/server.ts](src/mcp/server.ts), reaproveitando a mesma base SQLite (`./data`) — **não precisa** do servidor web rodando. Assim, Claude Code, Cursor ou outra IA podem **rodar o discovery, ver telas/elementos e criar/editar anotações** programaticamente.
 
-Rodar manualmente: `npm run mcp` (usa `tsx`).
+Rodar manualmente: `markup mcp` (instalado via npm) ou `npm run mcp` (no repo clonado).
 
 ### Configuração
 
-Adicione ao MCP do seu cliente (Claude Code `.mcp.json`, Cursor `~/.cursor/mcp.json`, Claude Desktop `claude_desktop_config.json`):
+**Instalado via npm** (`npm i -g github:Empreiteiro/markup`) — o jeito simples (Claude Code: `claude mcp add markup -- markup mcp`):
+
+```json
+{
+  "mcpServers": {
+    "markup": { "command": "markup", "args": ["mcp"] }
+  }
+}
+```
+
+**Repo clonado** — aponte para o `tsx` local:
 
 ```json
 {
   "mcpServers": {
     "markup": {
-      "command": "/Users/democh/Documents/GitHub/markup/node_modules/.bin/tsx",
-      "args": ["/Users/democh/Documents/GitHub/markup/src/mcp/server.ts"],
-      "env": { "MARKUP_DATA_DIR": "/Users/democh/Documents/GitHub/markup/data" }
+      "command": "<repo>/node_modules/.bin/tsx",
+      "args": ["<repo>/src/mcp/server.ts"],
+      "env": { "MARKUP_DATA_DIR": "<repo>/data" }
     }
   }
 }
@@ -62,11 +94,11 @@ Adicione ao MCP do seu cliente (Claude Code `.mcp.json`, Cursor `~/.cursor/mcp.j
 
 `MARKUP_DATA_DIR` aponta para a mesma pasta `data/` do app web — a IA e a UI compartilham os dados em tempo real (WAL).
 
-### Ferramentas (19)
+### Ferramentas (20)
 
 - **Projetos:** `markup_list_projects`, `markup_get_project`, `markup_create_project`, `markup_update_project`, `markup_delete_project`
 - **Discovery & captura:** `markup_discover` (lê o repo → rotas + `arquivo:linha` + grafo de navegação + modais), `markup_capture` (Playwright; a app-alvo precisa estar rodando na baseUrl)
-- **Telas:** `markup_list_screens`, `markup_get_screen` (tela + elementos com `selector`/ARIA/bbox), `markup_get_screenshot` (PNG, para a IA **ver** a tela)
+- **Telas:** `markup_list_screens`, `markup_get_screen` (tela + elementos com `selector`/ARIA/bbox), `markup_get_screenshot` (PNG, para a IA **ver** a tela), `markup_delete_screen`
 - **Anotações:** `markup_list_annotations`, `markup_create_annotation` (atrela por `selector` ou `elementId`, posição calculada do bbox), `markup_update_annotation`, `markup_delete_annotation`
 - **Export:** `markup_export_review` (`review.md` / `review.json`)
 - **Runtime (repo):** `markup_clone_repo` (clona repo remoto), `markup_start_app` (sobe o dev server, detecta a URL e a define como baseUrl), `markup_stop_app`, `markup_app_status`
