@@ -2,25 +2,15 @@
 
 A tool that **reads a target application, discovers and captures all of its screens/modals, lays them out on a flow-ordered (UX) canvas, lets you add visual annotations anchored to real elements and to the source code, and exports a review document** consumable by an AI (Claude Code, Cursor, IBM Bob) or a developer.
 
-## How it works (overview)
+## How it works
 
-1. **Discover** (static repo analysis): routes, screens, modals and the navigation graph — mapping each screen to its source file/component. Initial focus on **React / Next.js**.
-2. **Capture** (Playwright): navigates to the running app's URL, takes real screenshots and extracts each screen's element map (selector, role/ARIA, accessible name, bounding box).
-3. **Canvas** (React Flow): screens as nodes connected by the navigation flow, in a sequential layout.
-4. **Annotate**: pins / boxes / arrows over the screenshot, auto-anchored to the real element (and to `file:line` when available).
-5. **Export**: `review.md` (human + AI, with a task checklist) and `review.json` (canonical, typed).
+1. **Install Markup & start the MCP server** — install the CLI and register `markup mcp` in your IDE (see [Installation](#installation)).
+2. **Start the app you want to review** — any running URL works (e.g. `http://localhost:3000`).
+3. **Discover the screens from your favourite IDE** — ask the MCP server (Claude Code, Cursor, VS Code, Bob…) to run discovery and capture, giving it your app's URL. It maps the routes, screenshots each screen and extracts its element map.
+4. **Open the Markup UI to review & annotate** — go through the screens on the grid/canvas and drop annotations (pins, boxes, arrows), auto-anchored to the real element and to `file:line`.
+5. **Ship the result** — export the final `review.md` / `review.json` with every annotation, **or** let your AI pull the annotations through the MCP and apply all the fixes to your codebase in one pass.
 
-> In v1, capture works by pointing at an **already-running URL** (robust). Auto-starting the repo's dev server comes in the polish phase.
-
-## Stack
-
-- **Next.js 16 (App Router) + TypeScript** — single full-stack app; API routes host the pipeline.
-- **Tailwind CSS v4** — styling.
-- **@xyflow/react + dagre** — canvas and flow auto-layout.
-- **Playwright (chromium)** — screen capture + element extraction.
-- **ts-morph** — static route/modal analysis with `file:line`.
-- **better-sqlite3** — local storage; screenshots on disk (`./data`).
-- **TanStack Query + Zustand + Zod**.
+> Capture works against an **already-running URL**. The MCP can also clone a repo and boot its dev server for you (`markup_clone_repo`, `markup_start_app`).
 
 ## Installation
 
@@ -53,12 +43,6 @@ make mcp           # MCP server (stdio)
 ```
 
 Data in `./data` (gitignored).
-
-### Usage flow
-
-1. Start the target app you want to review (e.g. `http://localhost:3000`).
-2. Create a project (MCP `markup_create_project`) with that **base URL** and, optionally, the **repo path** for screen→code mapping.
-3. **Discovery and capture run through the MCP** (`markup_discover` / `markup_capture`) → see the screens in the **grid/canvas** → **annotate** → **export** `review.md`.
 
 ## MCP integration (Claude Code / Claude Desktop / Cursor / VS Code / IBM Bob)
 
@@ -198,3 +182,13 @@ src/
   lib/          # utilities
 data/           # local: sqlite + screenshots + exports (gitignored)
 ```
+
+## Stack
+
+- **Next.js 16 (App Router) + TypeScript** — single full-stack app; API routes host the pipeline.
+- **Tailwind CSS v4** — styling.
+- **@xyflow/react + dagre** — canvas and flow auto-layout.
+- **Playwright (chromium)** — screen capture + element extraction.
+- **ts-morph** — static route/modal analysis with `file:line`.
+- **better-sqlite3** — local storage; screenshots on disk (`./data`).
+- **TanStack Query + Zustand + Zod**.
