@@ -162,12 +162,13 @@ Bob also supports `cwd` and `env` per server (e.g. `"env": { "MARKUP_DATA_DIR": 
 
 > `MARKUP_DATA_DIR` points to the same `data/` folder the web UI uses — the AI and the UI share data in real time (SQLite WAL).
 
-### Tools (20)
+### Tools (21)
 
 - **Projects:** `markup_list_projects`, `markup_get_project`, `markup_create_project`, `markup_update_project`, `markup_delete_project`
 - **Discovery & capture:** `markup_discover` (reads the repo → routes + `file:line` + navigation graph + modals), `markup_capture` (Playwright; the target app must be running at the baseUrl)
 - **Screens:** `markup_list_screens`, `markup_get_screen` (screen + elements with `selector`/ARIA/bbox), `markup_get_screenshot` (PNG, so the AI can **see** the screen), `markup_delete_screen`
 - **Annotations:** `markup_list_annotations`, `markup_create_annotation` (anchors by `selector` or `elementId`, position computed from the bbox), `markup_update_annotation`, `markup_delete_annotation`
+- **Fix suggestions:** `markup_suggest_fixes` — read mode returns a worklist of open annotations needing a fix (note + anchored element + screen + source `file:line`); write mode saves the AI-generated suggestions in one batch
 - **Export:** `markup_export_review` (`review.md` / `review.json`)
 - **Runtime (repo):** `markup_clone_repo` (clones a remote repo), `markup_start_app` (starts the dev server, detects the URL and sets it as baseUrl), `markup_stop_app`, `markup_app_status`
 

@@ -491,6 +491,115 @@ server.registerTool(
   },
 );
 
+server.registerTool(
+  "markup_suggest_fixes",
+  {
+    title: "Generate fix suggestions for annotations",
+    description:
+      "Turns review annotations into concrete fix suggestions, in two phases. " +
+      "Call it WITHOUT `suggestions` (read mode) to get a worklist: every open annotation that still lacks a suggestion, enriched with its note, type/severity, the anchored element (selector / ARIA name) and the screen + source `file:line` — everything you need to author a code-level fix. " +
+      "Then call it again WITH `suggestions` (write mode: an array of {annotationId, suggestion}) to save the fixes you generated, in one batch. " +
+      "The MCP does NOT invent suggestions — you (the AI) write them from the worklist context; this tool only gathers context and persists what you produce.",
+    inputSchema: {
+      projectId: z.string().describe("Project ID"),
+      suggestions: z
+        .array(
+          z.object({
+            annotationId: z.string(),
+            suggestion: z.string().describe("The proposed fix to store on the annotation"),
+          }),
+        )
+        .optional()
+        .describe("Write mode: persist these generated suggestions onto their annotations"),
+      includeWithExisting: z
+        .boolean()
+        .default(false)
+        .describe("Read mode: also include annotations that already have a suggestion"),
+      includeResolved: z
+        .boolean()
+        .default(false)
+        .describe("Read mode: also include resolved annotations"),
+    },
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+  },
+  async ({ projectId, suggestions, includeWithExisting, includeResolved }): Promise<ToolResult> => {
+    if (!getProject(projectId)) return fail(`Project not found: ${projectId}`);
+
+    // Write mode: persist the suggestions the AI generated.
+    if (suggestions && suggestions.length) {
+      const saved: string[] = [];
+      const notFound: string[] = [];
+      for (const s of suggestions) {
+        const updated = updateAnnotation(s.annotationId, { suggestion: s.suggestion });
+        if (updated) saved.push(s.annotationId);
+        else notFound.push(s.annotationId);
+      }
+      return ok({ saved: saved.length, savedIds: saved, notFound });
+    }
+
+    // Read mode: build the suggestion worklist (annotation + element + source).
+    const elementCache = new Map<string, ReturnType<typeof listElements>>();
+    const elementsFor = (screenId: string) => {
+      let els = elementCache.get(screenId);
+      if (!els) {
+        els = listElements(screenId);
+        elementCache.set(screenId, els);
+      }
+      return els;
+    };
+    const screenCache = new Map<string, ReturnType<typeof getScreen>>();
+    const screenFor = (screenId: string) => {
+      if (!screenCache.has(screenId)) screenCache.set(screenId, getScreen(screenId));
+      return screenCache.get(screenId) ?? null;
+    };
+
+    const items = listAnnotationsForProject(projectId)
+      .filter((a) => (includeResolved ? true : a.status === "open"))
+      .filter((a) => (includeWithExisting ? true : !a.suggestion))
+      .map((a) => {
+        const screen = screenFor(a.screenId);
+        const el =
+          a.elementId
+            ? elementsFor(a.screenId).find((e) => e.id === a.elementId) ?? null
+            : null;
+        return {
+          annotationId: a.id,
+          type: a.type,
+          severity: a.severity,
+          note: a.note || null,
+          currentSuggestion: a.suggestion || null,
+          screen: screen
+            ? {
+                name: screen.name,
+                route: screen.route,
+                sourceFile: screen.sourceFile,
+                sourceLine: screen.sourceLine,
+              }
+            : null,
+          element: el
+            ? {
+                selector: el.selector,
+                role: el.role,
+                accessibleName: el.accessibleName,
+                tag: el.tag,
+                sourceFile: el.sourceFile,
+                sourceLine: el.sourceLine,
+              }
+            : null,
+        };
+      });
+
+    return ok({
+      count: items.length,
+      items,
+      guidance:
+        "For each item: open the screen's sourceFile (use the element's selector / accessibleName to locate the spot), then write a concrete, code-level fix. " +
+        "Save them by calling markup_suggest_fixes again with `suggestions: [{ annotationId, suggestion }]`. " +
+        "Items with note=null are bare markers — infer intent from the element, or skip and flag them to the user.",
+    });
+  },
+);
+
 /* --------------------------------------------------------------------- Export */
 
 server.registerTool(
