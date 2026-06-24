@@ -38,7 +38,7 @@ export default function Dashboard() {
             No projects yet. Create the first one above.
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 auto-rows-fr">
             {projects.map((p) => (
               <ProjectCard key={p.id} project={p} onDeleted={invalidate} />
             ))}
