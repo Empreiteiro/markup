@@ -6,8 +6,6 @@ A tool that **reads a target application, discovers and captures all of its scre
 
 <video src="https://github.com/Empreiteiro/markup/raw/main/Demo.mp4" controls width="100%"></video>
 
-> Not playing inline? [Watch the demo](Demo.mp4).
-
 ## How it works
 
 1. **Install Markup & start the MCP server** — install the CLI and register `markup mcp` in your IDE (see [Installation](#installation)).
