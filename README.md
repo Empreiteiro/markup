@@ -4,7 +4,7 @@ A tool that **reads a target application, discovers and captures all of its scre
 
 ## Demo
 
-<video src="https://github.com/Empreiteiro/markup/raw/main/Demo.mp4" controls width="100%"></video>
+https://github.com/user-attachments/assets/3e7c55af-5879-42c9-adbe-c70d7f62169e
 
 ## How it works
 

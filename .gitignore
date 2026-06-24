@@ -43,5 +43,6 @@ next-env.d.ts
 # markup local data (sqlite db + captured screenshots + exports)
 /data
 
-# heavy source recording — only the web-friendly Demo.mp4 is committed
+# demo video — lives as a GitHub attachment (user-attachments URL in the README)
 /Demo.mov
+/Demo.mp4
