@@ -16,6 +16,10 @@ https://github.com/user-attachments/assets/3e7c55af-5879-42c9-adbe-c70d7f62169e
 
 > Capture works against an **already-running URL**. The MCP can also clone a repo and boot its dev server for you (`markup_clone_repo`, `markup_start_app`).
 
+## Demo 2
+
+https://github.com/user-attachments/assets/f14a40ca-7709-48e4-8873-d8584c463255
+
 ## Installation
 
 ### Without cloning (via npm + GitHub) — fastest
