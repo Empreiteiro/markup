@@ -2,6 +2,12 @@
 
 A tool that **reads a target application, discovers and captures all of its screens/modals, lays them out on a flow-ordered (UX) canvas, lets you add visual annotations anchored to real elements and to the source code, and exports a review document** consumable by an AI (Claude Code, Cursor, IBM Bob) or a developer.
 
+## Demo
+
+<video src="https://github.com/Empreiteiro/markup/raw/main/Demo.mp4" controls width="100%"></video>
+
+> Not playing inline? [Watch the demo](Demo.mp4).
+
 ## How it works
 
 1. **Install Markup & start the MCP server** — install the CLI and register `markup mcp` in your IDE (see [Installation](#installation)).
